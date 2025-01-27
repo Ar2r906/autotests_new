@@ -1,0 +1,76 @@
+# Матричные джобы
+# schedule тесты заводить с $TEST_KIND = SCHEDULE_UI и _API - чтобы разграничить запуски и видеть в аллюре нормальные теги и названия
+
+schedule_ui_test:
+  extends: .ui-autotest
+  variables:
+    ADDITIONAL_LAUNCH_NAME: "${TEST_KIND}.${STAND}-${UI_BROWSER_NAME}"
+    ALLURE_LAUNCH_TAGS: "${TEST_KIND},${CI_COMMIT_REF_NAME},${STAND},${UI_BROWSER_NAME}"
+  parallel:
+    matrix:
+      - UI_BROWSER_NAME:
+          - "chrome"
+          - "firefox"
+          - "webKit"
+          - "edge"
+        CI_TEST_TRIGGER_ENV:
+          - "Staging"
+        UI_IMS_BASE_URL:
+          - "https://stage.ims.mts.ru"
+      - UI_BROWSER_NAME:
+          - "chrome"
+          - "firefox"
+          - "webKit"
+          - "edge"
+        STAND:
+          - "Development"
+        UI_IMS_BASE_URL:
+          - "https://dev.ims.mts.ru"
+      - UI_BROWSER_NAME:
+          - "chrome"
+          - "firefox"
+          - "webKit"
+          - "edge"
+        STAND:
+          - "PreProduction"
+        UI_IMS_BASE_URL:
+          - "https://pre-prod.ims.mts.ru"
+  rules:
+    - if: $TEST_KIND == "SCHEDULE_UI"
+      when: always
+
+schedule_api_test:
+  extends: .api-autotest
+  parallel:
+    matrix:
+      - STAND:
+          - "Staging"
+        IMS_PUBLIC_API_BASE_URL:
+          - "https://stage.ims.mts.ru:8009"
+        IMS_INTEGRATION_API_BASE_URL:
+          - "https://stage.ims.mts.ru:8008"
+        IMS_API_BASE_URL:
+          - "https://stage.ims.mts.ru:8002"
+      - STAND:
+          - "Development"
+        IMS_PUBLIC_API_BASE_URL:
+          - "https://dev.ims.mts.ru:8009"
+        IMS_INTEGRATION_API_BASE_URL:
+          - "https://dev.ims.mts.ru:8008"
+        IMS_API_BASE_URL:
+          - "https://dev.ims.mts.ru:8002"
+      - STAND:
+#          todo для препрода не понятно что писать
+          - "PreProduction"
+        IMS_PUBLIC_API_BASE_URL:
+          - "https://pre-prod.api.ims.mts.ru"
+        IMS_INTEGRATION_API_BASE_URL:
+          - "https://pre-prod.api.ims.mts.ru"
+        IMS_API_BASE_URL:
+          - "https://pre-prod.api.ims.mts.ru"
+  variables:
+    ADDITIONAL_LAUNCH_NAME: "${TEST_KIND}.${STAND}"
+    ALLURE_LAUNCH_TAGS: "${TEST_KIND},${CI_COMMIT_REF_NAME},${STAND}"
+  rules:
+    - if: $TEST_KIND == "SCHEDULE_API"
+      when: always

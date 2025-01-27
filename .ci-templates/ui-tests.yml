@@ -1,0 +1,56 @@
+# для стейжа все значения по умолчанию, такие как UI_IMS_BASE_URL и браузер хром
+
+ui_test_stage:chrome:
+  extends:
+    - .ui-autotest
+    - .base-test-rules-stage
+
+ui_test_stage:firefox:
+  extends:
+    - .ui-autotest
+    - .base-test-rules-stage
+  variables:
+    UI_BROWSER_NAME: "firefox"
+
+ui_test_stage:msedge:
+  extends:
+    - .ui-autotest
+    - .base-test-rules-stage
+  variables:
+    UI_BROWSER_NAME: "edge"
+
+ui_test_stage:webKit:
+  extends:
+    - .ui-autotest
+    - .base-test-rules-stage
+  variables:
+    UI_BROWSER_NAME: "webKit"
+
+ui_test_stage:opera:
+  extends:
+    - .ui-autotest
+    - .base-test-rules-stage
+  variables:
+    UI_BROWSER_NAME: "opera"
+
+ui_test_dev:chrome:
+  extends:
+    - .ui-autotest
+    - .base-test-rules-dev
+  variables:
+    UI_IMS_BASE_URL: "https://dev.ims.mts.ru"
+
+ui_test_dev:edge:
+  extends:
+    - .ui-autotest
+    - .base-test-rules-dev
+  variables:
+    UI_BROWSER_NAME: "edge"
+    UI_IMS_BASE_URL: "https://dev.ims.mts.ru"
+
+ui_test_preprod:chrome:
+  extends:
+    - .ui-autotest
+    - .base-test-rules-preprod
+  variables:
+    UI_IMS_BASE_URL: "https://pre-prod.ims.mts.ru"

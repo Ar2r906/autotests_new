@@ -1,0 +1,120 @@
+image: sregistry.mts.ru/qa-techplatform/playwright/python:v1.43.0.3315d9af
+
+stages:
+  - test
+
+variables:
+  GIT_DEPTH: "0"
+  PYTHONWARNINGS: "ignore:Unverified HTTPS request"
+  ISSO_BASE_URL: "https://isso.mts.ru"
+  ALLURE_RESULTS: "${CI_PROJECT_DIR}/allure-results"
+  ALLURE_LOG_FILE: "${CI_PROJECT_DIR}/allure.log"
+  ENV_PROPERTIES_PATH: "$ALLURE_RESULTS/environment.properties"
+  CI_TEST_TRIGGER_ENV: "none"
+  STAND: "Development" # дефолтный стенд для запуска тестов
+  ROCKET_CHANNEL: "" # канал нотификации о прохождении тестов
+  BEHAVE_WORKERS: "3" # Максимальное количество параллельных сессий браузера по фичам behave реализации
+  BEHAVE_FEATURES_PATH: "./ui_tests/features/chatbot" # путь для запуска фичафайлов
+  PYTEST_WORKERS: "3"  # Максимальное количество параллельных тестов для апи тестов или других на pytest
+  PYTEST_TESTS_PATH: "api_tests/"  # Максимальное количество параллельных тестов для апи тестов или других на pytest
+  UI_BROWSER_NAME: "chrome"  # Наименование браузера, так же firefox, webKit
+  UI_IMS_BASE_URL: "https://bot.mts.ru" # URL тестируемого GUI системы
+  UI_SCREENSHOT_ENABLER: "False" # включение метода с доп логикой скриншотов, делает скрины если флaг True
+  UI_WINDOW_WIDTH: "1680"  # Ширина окна
+  UI_WINDOW_HEIGHT: "1020"  # Высота окна
+  UI_BROWSER_HEADLESS: "True" # для сиайки используем образ с браузерами в режиме хедлесс(не надо поднимать селеноиды)
+  UI_IGNORE_INSECURE_CERTS: "True" # если включить то будет требовать наличие сертификатов
+  IMS_PUBLIC_API_BASE_URL: "https://manager.0001hdtest01.msk.mts.ru" # URL тестируемой системы
+  IMS_INTEGRATION_API_BASE_URL: "https://manager.0001hdtest01.msk.mts.ru" # URL тестируемой системы
+  VAULT_MOUNT_POINT: "ims-test-3t5q7" # папка со всеми саб паппками секретов
+
+.autotest:
+  stage: test
+  tags:
+    - prod
+  allow_failure: true
+  script:
+    - |
+      if test -z "$ALLURE_JOB_RUN_ID" 
+      then
+          export ALLURE_LAUNCH_NAME="${ADDITIONAL_LAUNCH_NAME}-${CI_PROJECT_NAME}.${CI_COMMIT_REF_NAME}-$(date +"%Y.%m.%d-%H.%M.%S")"
+          export ALLURE_LAUNCH_ID=$(allurectl launch create --format ID | sed -e 's/[^0-9]//g' -e '/^$/d' | grep -v '^$')
+          allurectl watch --launch-id "$ALLURE_LAUNCH_ID" -- ${TEST_RUN_COMMAND} | tee ${ALLURE_LOG_FILE}
+      else
+          allurectl watch --job-url "$CI_PIPELINE_URL" --job-run-url $CI_JOB_URL --ci-type "gitlab" -- ${TEST_RUN_COMMAND} | tee ${ALLURE_LOG_FILE}
+      fi
+
+  after_script:
+    - export ALLURE_LAUNCH_URL="$((grep "Report link" ${ALLURE_LOG_FILE} | tail -n 1 | sed 's/Report link://') || true)"
+  artifacts:
+    when: always
+    paths:
+      - $ALLURE_RESULTS
+      - $ALLURE_LOG_FILE
+
+
+.ui-autotest:
+  extends: .autotest
+  variables:
+    TEST_KIND: "UI"
+    VAULT_SECRET_PATH: "${STAND}"
+    ADDITIONAL_LAUNCH_NAME: "${TEST_KIND}.${STAND}-${UI_BROWSER_NAME}-${UI_WINDOW_WIDTH}x${UI_WINDOW_HEIGHT}"
+    ALLURE_LAUNCH_TAGS: "${TEST_KIND},${CI_COMMIT_REF_NAME},${STAND},${UI_BROWSER_NAME},${UI_WINDOW_WIDTH}x${UI_WINDOW_HEIGHT}"
+    TEST_RUN_COMMAND: behave -f allure_behave.formatter:AllureFormatter -o allure-results ./ui_tests/features/chatbot #python3 behave_parallel.py -p ${BEHAVE_WORKERS} -f allure_behave.formatter:AllureFormatter -o allure-results -s ./ui_tests/features/chatbot
+  before_script:
+    - mkdir -p $ALLURE_RESULTS
+    - echo "TEST_KIND=$TEST_KIND" > $ENV_PROPERTIES_PATH
+    - echo "STAND=$STAND" >> $ENV_PROPERTIES_PATH
+    - echo "GITLAB_JOB=$CI_JOB_URL" >> $ENV_PROPERTIES_PATH
+    - echo "UI_BROWSER_NAME=$UI_BROWSER_NAME" >> $ENV_PROPERTIES_PATH
+    - echo "UI_IMS_BASE_URL=$UI_IMS_BASE_URL" >> $ENV_PROPERTIES_PATH
+    - pip install -r requirements.txt --trusted-host nexus.services.mts.ru --index https://nexus.services.mts.ru/repository/pip/simple --no-cache-dir
+
+
+.api-autotest:
+  extends: .autotest
+  variables:
+    TEST_KIND: "API"
+    VAULT_SECRET_PATH: "${STAND}"
+    ADDITIONAL_LAUNCH_NAME: "${TEST_KIND}.${STAND}"
+    ALLURE_LAUNCH_TAGS: "${TEST_KIND},${CI_COMMIT_REF_NAME},${STAND}"
+    TEST_RUN_COMMAND: pytest -n ${PYTEST_WORKERS} --alluredir=$ALLURE_RESULTS ${PYTEST_TESTS_PATH}
+  before_script:
+    - mkdir -p $ALLURE_RESULTS
+    - echo "TEST_KIND=$TEST_KIND" > $ENV_PROPERTIES_PATH
+    - echo "STAND=$STAND" >> $ENV_PROPERTIES_PATH
+    - echo "GITLAB_JOB=$CI_JOB_URL" >> $ENV_PROPERTIES_PATH
+    - echo "IMS_PUBLIC_API_BASE_URL=$IMS_PUBLIC_API_BASE_URL" >> $ENV_PROPERTIES_PATH
+    - echo "IMS_INTEGRATION_API_BASE_URL=$IMS_INTEGRATION_API_BASE_URL" >> $ENV_PROPERTIES_PATH
+    - echo "IMS_API_BASE_URL=$IMS_API_BASE_URL" >> $ENV_PROPERTIES_PATH
+    - pip install -r requirements.txt --trusted-host nexus.services.mts.ru --index https://nexus.services.mts.ru/repository/pip/simple --no-cache-dir
+
+.base-test-rules-stage:
+  variables:
+    STAND: "Staging"
+  rules:
+    - if: $CI_TEST_TRIGGER_ENV == "Staging"
+      when: always
+    - if: $CI_DEBUG == "true" || $CI_PIPELINE_SOURCE == "push" || ($CI_PIPELINE_SOURCE == "web" && $CI_TEST_TRIGGER_ENV == "none")
+      when: manual
+    - when: never
+
+.base-test-rules-dev:
+  variables:
+    STAND: "Development"
+  rules:
+    - if: $CI_TEST_TRIGGER_ENV == "Development"
+      when: always
+    - if: $CI_DEBUG == "true" || $CI_PIPELINE_SOURCE == "push" || ($CI_PIPELINE_SOURCE == "web" && $CI_TEST_TRIGGER_ENV == "none")
+      when: manual
+    - when: never
+
+.base-test-rules-preprod:
+  variables:
+    STAND: "PreProduction"
+  rules:
+    - if: $CI_TEST_TRIGGER_ENV == "PreProduction"
+      when: always
+    - if: $CI_DEBUG == "true" || $CI_PIPELINE_SOURCE == "push" || ($CI_PIPELINE_SOURCE == "web" && $CI_TEST_TRIGGER_ENV == "none")
+      when: manual
+    - when: never

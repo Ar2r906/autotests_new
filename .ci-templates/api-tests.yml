@@ -1,0 +1,28 @@
+# STAND указывается точно так же как название пути в волте, сквозные названия
+
+api_test_stage:
+  extends:
+    - .api-autotest
+    - .base-test-rules-stage
+  variables:
+    IMS_PUBLIC_API_BASE_URL: "https://stage.ims.mts.ru:8009"
+    IMS_INTEGRATION_API_BASE_URL: "https://stage.ims.mts.ru:8008"
+    IMS_API_BASE_URL: "https://manager.0001hdtest01.msk.mts.ru"
+
+api_test_dev:
+  extends:
+    - .api-autotest
+    - .base-test-rules-dev
+  variables:
+    IMS_PUBLIC_API_BASE_URL: "https://dev.ims.mts.ru:8009"
+    IMS_INTEGRATION_API_BASE_URL: "https://dev.ims.mts.ru:8008"
+    IMS_API_BASE_URL: "https://manager.0001hdtest01.msk.mts.ru"
+
+api_test_preprod:
+  extends:
+    - .api-autotest
+    - .base-test-rules-preprod
+  variables:
+    IMS_PUBLIC_API_BASE_URL: "https://pre-prod.api.ims.mts.ru"
+    IMS_INTEGRATION_API_BASE_URL: "https://pre-prod.api.ims.mts.ru"
+    IMS_API_BASE_URL: "https://manager.0001hdtest01.msk.mts.ru"

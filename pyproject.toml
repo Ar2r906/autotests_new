@@ -1,0 +1,32 @@
+[tool.ruff.lint]
+exclude = ["**/*.feature"]
+fixable = ["ALL"]
+select = [
+    "A", # flake8-builtins
+    "B", # flake8-bugbear
+    "C90", # mccabe
+    "COM", # flake8-commas
+    "E", # pycodestyle errors
+    "F", # pyflakes
+    "I", # isort
+    "Q", # flake8-quotes
+    "S", # flake8-bandit
+    "SIM", # flake8-simplify
+    "UP", # pyupgrade
+    "W", # pycodestyle warnings
+]
+ignore = [
+    "COM812",
+    "S101",
+    "F811",
+    "F403",
+    "E501",
+]
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+docstring-code-line-length = 20
+
+[tool.ruff.lint.per-file-ignores]
+"*.feature" = ["Q000", "E501", "E999"]
+"*.py" = ["F405"]

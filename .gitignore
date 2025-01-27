@@ -1,0 +1,7 @@
+/.env
+.idea
+/venv/
+allure*results*
+/multiprocessing_features.log
+__pycache__/
+README.md

@@ -1,0 +1,5 @@
+include:
+  - '/.ci-templates/base.yml'
+  - '/.ci-templates/ui-tests.yml'
+  - '/.ci-templates/api-tests.yml'
+  # - '/.ci-templates/schedule.yml'
